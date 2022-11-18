@@ -57,7 +57,8 @@ fn send_info(article_type: &str) -> (String, String, String, Colour) {
             "Moderator Academy Article".to_string(),
             Colour::from_rgb(31, 139, 76),
         ),
-        "safety" => (
+
+        "safety" | "safety-new" => (
             env::var("SAFETY_ARTICLES_WEBHOOK_URL")
                 .expect("missing 'SAFETY_ARTICLES_WEBHOOK_URL' in .env"),
             format_ping(

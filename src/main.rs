@@ -46,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut page = 1;
 
         loop {
-            let url = format!("{}&page={}", &endpoint.url, page);
+            let url = format!("{}/api/v2/help_center/en-us/articles?sort_by=created_at&sort_order=desc&per_page=100&page={}", &endpoint.url, page);
 
             let body = match reqwest::get(&url)
                 .await

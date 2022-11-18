@@ -1,18 +1,22 @@
- [
-    {
-        "url": "https://support.discord.com/api/v2/help_center/en-us/articles?sort_by=created_at&sort_order=desc&per_page=100",
-        "name": "support"
-    },
-    {
-        "url": "https://support-dev.discord.com/api/v2/help_center/en-us/articles?sort_by=created_at&sort_order=desc&per_page=100",
-        "name": "dev"
-    },
-    {
-        "url": "https://discordmoderatoracademy.zendesk.com/api/v2/help_center/en-us/articles?sort_by=created_at&sort_order=desc&per_page=100",
-        "name": "discordmoderatoracademy"
-    },
-    {
-        "url": "https://safety.discord.com/api/v2/help_center/en-us/articles?sort_by=created_at&sort_order=desc&per_page=100",
-        "name": "safety"
-    }
+[
+	{
+		"url": "https://support.discord.com",
+		"name": "support"
+	},
+	{
+		"url": "https://support-dev.discord.com",
+		"name": "dev"
+	},
+	{
+		"url": "https://discordmoderatoracademy.zendesk.com",
+		"name": "discordmoderatoracademy"
+	},
+	{
+		"url": "https://safety.discord.com",
+		"name": "safety"
+	},
+	{
+		"url": "https://discordsafetyportal.zendesk.com",
+		"name": "safety-new"
+	}
 ]
