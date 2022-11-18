@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 // src/authors.json
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Author {
     pub id: String,
     pub name: String,
@@ -15,13 +15,14 @@ pub struct Endpoint {
     pub name: String,
 }
 
-// DB Aricle
+// DB Article
 #[derive(Debug)]
 pub struct ArticleDB {
     pub id: usize,
     pub name: String,
     pub article_id: String,
     pub body: String,
+    pub body_hash: String,
     pub created_at: String,
     pub updated_at: String,
     pub edited_at: String,

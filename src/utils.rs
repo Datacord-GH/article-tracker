@@ -4,6 +4,7 @@ use serenity::model::prelude::Embed;
 use serenity::prelude::SerenityError;
 use serenity::utils::Colour;
 use serenity::{http::Http, model::webhook::Webhook};
+use similar::{ChangeTag, TextDiff};
 use std::env;
 
 use crate::models::{Article, Author};
@@ -70,31 +71,41 @@ fn send_info(article_type: &str) -> (String, String, String, Colour) {
     }
 }
 
-pub async fn send_message(
-    article: &Article,
-    authors: &Vec<Author>,
-    article_type: &String,
-) -> Result<(), SerenityError> {
-    let (token, ping, hook_name, color) = send_info(article_type);
-
-    let http = Http::new("token");
-
-    let webhook = Webhook::from_url(&http, &token).await?;
-
+fn clear_md(text: &str) -> String {
     let md_regex = Regex::new(r"(<([^>]+)>)").unwrap();
-    let author_pos = authors
-        .iter()
-        .position(|r| r.id == article.author_id.to_string());
+    md_regex
+        .replace_all(text, "")
+        .chars()
+        .take(250)
+        .collect::<String>()
+}
 
-    let mut author = &Author {
-        id: article.author_id.to_string(),
+fn get_author(author_id: i64, authors: &Vec<Author>) -> Author {
+    let author_pos = authors.iter().position(|r| r.id == author_id.to_string());
+
+    let mut author = Author {
+        id: author_id.to_string(),
         image: "https://cdn.discordapp.com/embed/avatars/0.png".to_string(),
         name: "Unknown".to_string(),
     };
 
     if author_pos.is_some() {
-        author = authors.get(author_pos.unwrap()).unwrap();
+        author = authors.get(author_pos.unwrap()).unwrap().clone();
     }
+
+    author
+}
+
+pub async fn send_message_new(
+    article: &Article,
+    authors: &Vec<Author>,
+    article_type: &String,
+) -> Result<(), SerenityError> {
+    let (token, ping, hook_name, color) = send_info(article_type);
+    let http = Http::new("token");
+
+    let webhook = Webhook::from_url(&http, &token).await?;
+    let author = get_author(article.author_id, authors);
 
     let embed = Embed::fake(|e| {
         e.title(&article.name)
@@ -109,14 +120,54 @@ pub async fn send_message(
             .field("Created At", time_formatting(&article.created_at), true)
             .field("Updated At", time_formatting(&article.updated_at), true)
             .field("Edited At", time_formatting(&article.edited_at), true)
-            .description(
-                md_regex
-                    .replace_all(&article.body, "")
-                    .chars()
-                    .take(250)
-                    .collect::<String>(),
-            )
+            .description(clear_md(&article.body))
             .footer(|f| f.text(&article.label_names.join(", ")))
+            .author(|a| {
+                a.name(format!("{} ({})", &author.name, &author.id))
+                    .icon_url(&author.image)
+            })
+            .color(color)
+    });
+
+    webhook
+        .execute(&http, true, |w| {
+            w.content(ping).username(hook_name).embeds(vec![embed])
+        })
+        .await?;
+
+    Ok(())
+}
+
+pub async fn send_message_update(
+    article: &Article,
+    old_text: &String,
+    authors: &Vec<Author>,
+    article_type: &String,
+) -> Result<(), SerenityError> {
+    let old_text = clear_md(&old_text);
+    let new_text = clear_md(&article.body);
+
+    let diff = TextDiff::from_lines(&old_text, &new_text);
+    let mut changed_text = String::new();
+    for change in diff.iter_all_changes() {
+        let sign = match change.tag() {
+            ChangeTag::Delete => "-",
+            ChangeTag::Insert => "+",
+            ChangeTag::Equal => continue,
+        };
+        changed_text += &format!("{}{}", sign, change);
+    }
+
+    let (token, ping, hook_name, color) = send_info(article_type);
+    let http = Http::new("token");
+
+    let webhook = Webhook::from_url(&http, &token).await?;
+    let author = get_author(article.author_id, authors);
+
+    let embed = Embed::fake(|e| {
+        e.title(&article.name)
+            .url(&article.html_url)
+            .description(format!("```diff\n{}\n```", &changed_text))
             .author(|a| {
                 a.name(format!("{} ({})", &author.name, &author.id))
                     .icon_url(&author.image)
