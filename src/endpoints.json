@@ -12,11 +12,7 @@
 		"name": "discordmoderatoracademy"
 	},
 	{
-		"url": "https://safety.discord.com",
-		"name": "safety"
-	},
-	{
-		"url": "https://discordsafetyportal.zendesk.com",
-		"name": "safety-new"
+		"url": "https://creator-support.discord.com",
+		"name": "creator-support"
 	}
 ]

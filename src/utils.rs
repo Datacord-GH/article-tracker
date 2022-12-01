@@ -68,6 +68,18 @@ fn send_info(article_type: &str) -> (String, String, String, Colour) {
             "Safety Article".to_string(),
             Colour::from_rgb(189, 133, 133),
         ),
+
+        "creator-support" => (
+            env::var("CREATOR_ARTICLES_WEBHOOK_URL")
+                .expect("missing 'CREATOR_ARTICLES_WEBHOOK_URL' in .env"),
+            format_ping(
+                env::var("CREATOR_ARTICLES_ROLE_ID")
+                    .expect("missing 'CREATOR_ARTICLES_ROLE_ID' in .env"),
+            ),
+            "Creator Support".to_string(),
+            Colour::from_rgb(46, 204, 113),
+        ),
+
         _ => panic!("Invalid article type"),
     }
 }
@@ -164,6 +176,10 @@ pub async fn send_message_update(
 
     let webhook = Webhook::from_url(&http, &token).await?;
     let author = get_author(article.author_id, authors);
+
+    if &changed_text == "" {
+        return Ok(());
+    }
 
     let embed = Embed::fake(|e| {
         e.title(&article.name)
