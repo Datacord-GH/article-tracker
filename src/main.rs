@@ -6,8 +6,8 @@ use models::{ArticleDB, ArticleRequest, Author, Endpoint};
 use rusqlite::{params, Connection, Result};
 use serde_json;
 use std::collections::hash_map::DefaultHasher;
-use std::fs;
 use std::hash::{Hash, Hasher};
+use std::{env, fs};
 use tokio::main;
 
 fn hasher<T>(obj: T) -> String
@@ -25,19 +25,18 @@ use crate::utils::{send_message_new, send_message_update};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
-    let conn = Connection::open("articles.db")?;
+    let conn = Connection::open(env::var("DB_URL").expect("missing DB_URL in .env"))?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS articles (id INTEGER PRIMARY KEY, name TEXT, article_id TEXT, body TEXT, body_hash TEXT, created_at TEXT, updated_at TEXT, edited_at TEXT)",
         (),
     )?;
 
-    let authors_data =
-        fs::read_to_string("./src/authors.json").expect("unable to read 'authors.json'");
+    let authors_data = fs::read_to_string("./authors.json").expect("unable to read 'authors.json'");
     let authors: Vec<Author> =
         serde_json::from_str(&authors_data).expect("unable to parse 'authors.json'");
 
     let endpoints_data =
-        fs::read_to_string("./src/endpoints.json").expect("unable to read 'endpoints.json'");
+        fs::read_to_string("./endpoints.json").expect("unable to read 'endpoints.json'");
     let endpoints: Vec<Endpoint> =
         serde_json::from_str(&endpoints_data).expect("unable to parse 'endpoints.json'");
 
