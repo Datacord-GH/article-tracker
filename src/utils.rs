@@ -1,11 +1,14 @@
 use chrono::{DateTime, Utc};
 use regex::Regex;
+use serenity::builder::ExecuteWebhook;
 use serenity::model::prelude::Embed;
 use serenity::prelude::SerenityError;
 use serenity::utils::Colour;
 use serenity::{http::Http, model::webhook::Webhook};
 use similar::{ChangeTag, TextDiff};
 use std::env;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 
 use crate::models::{Article, Author};
 
@@ -84,12 +87,12 @@ fn send_info(article_type: &str) -> (String, String, String, Colour) {
     }
 }
 
-fn clear_md(text: &str) -> String {
+fn clear_md(text: &str, amount: usize) -> String {
     let md_regex = Regex::new(r"(<([^>]+)>)").unwrap();
     md_regex
         .replace_all(text, "")
         .chars()
-        .take(250)
+        .take(amount)
         .collect::<String>()
 }
 
@@ -133,7 +136,7 @@ pub async fn send_message_new(
             .field("Created At", time_formatting(&article.created_at), true)
             .field("Updated At", time_formatting(&article.updated_at), true)
             .field("Edited At", time_formatting(&article.edited_at), true)
-            .description(clear_md(&article.body))
+            .description(clear_md(&article.body, 250))
             .footer(|f| f.text(&article.label_names.join(", ")))
             .author(|a| {
                 a.name(format!("{} ({})", &author.name, &author.id))
@@ -157,8 +160,8 @@ pub async fn send_message_update(
     authors: &Vec<Author>,
     article_type: &String,
 ) -> Result<(), SerenityError> {
-    let old_text = clear_md(&old_text);
-    let new_text = clear_md(&article.body);
+    let old_text = clear_md(&old_text, old_text.len());
+    let new_text = clear_md(&article.body, article.body.len());
 
     let diff = TextDiff::from_lines(&old_text, &new_text);
     let mut changed_text = String::new();
@@ -181,10 +184,21 @@ pub async fn send_message_update(
         return Ok(());
     }
 
+    let description: String;
+    let file_name = format!("./{}.diff", article.id);
+
+    if changed_text.len() > 500 {
+        description = String::from("");
+        let mut file = File::create(&file_name).await?;
+        file.write_all(changed_text.as_bytes()).await?;
+    } else {
+        description = format!("```diff\n{}\n```", &changed_text);
+    }
+
     let embed = Embed::fake(|e| {
         e.title(&article.name)
             .url(&article.html_url)
-            .description(format!("```diff\n{}\n```", &changed_text))
+            .description(description)
             .author(|a| {
                 a.name(format!("{} ({})", &author.name, &author.id))
                     .icon_url(&author.image)
@@ -192,11 +206,22 @@ pub async fn send_message_update(
             .color(color)
     });
 
-    webhook
-        .execute(&http, true, |w| {
-            w.content(ping).username(hook_name).embeds(vec![embed])
-        })
-        .await?;
+    if changed_text.len() > 500 {
+        webhook
+            .execute(&http, true, |w| {
+                w.content(ping)
+                    .username(hook_name)
+                    .embeds(vec![embed])
+                    .add_file(file_name.as_str())
+            })
+            .await?;
+    } else {
+        webhook
+            .execute(&http, true, |w| {
+                w.content(ping).username(hook_name).embeds(vec![embed])
+            })
+            .await?;
+    }
 
     Ok(())
 }

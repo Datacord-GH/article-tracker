@@ -2,3 +2,4 @@
 *.env
 *.db
 *.db-journal
+*.diff

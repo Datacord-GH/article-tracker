@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .await
                         .expect("error sending 'update article' message");
 
-                        match conn.execute(
+                        /*match conn.execute(
                             "UPDATE articles SET body = ?1, body_hash = ?2 WHERE article_id = ?3",
                             params![
                                 &article.body,
@@ -116,6 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Err(err) => panic!("error updating db: {}", err),
                             Ok(value) => value,
                         };
+                        */
                     }
 
                     continue;
